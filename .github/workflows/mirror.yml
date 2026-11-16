@@ -1,0 +1,33 @@
+# workkills.me 저장소를 그대로 가져와 workkills.ai로 배포
+name: mirror
+on:
+  schedule: [{ cron: "*/10 * * * *" }]
+  workflow_dispatch:
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: false }
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: { name: github-pages }
+    steps:
+      - id: src
+        env: { GH_TOKEN: "${{ github.token }}" }
+        run: |
+          sha=$(gh api repos/mongmonkey/workkills.me/commits/main --jq .sha)
+          live=$(curl -fsS "https://workkills.ai/source-sha.txt?$RANDOM" || true)
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+          if [ "$sha" = "$live" ] && [ "${{ github.event_name }}" = schedule ]; then echo "skip=1" >> "$GITHUB_OUTPUT"; fi
+      - if: steps.src.outputs.skip != '1'
+        uses: actions/checkout@v4
+        with: { repository: mongmonkey/workkills.me, ref: "${{ steps.src.outputs.sha }}" }
+      - if: steps.src.outputs.skip != '1'
+        run: |
+          echo workkills.ai > CNAME
+          sed -i 's#^url:.*#url: "https://workkills.ai"#' _config.yml
+          echo "${{ steps.src.outputs.sha }}" > source-sha.txt
+      - if: steps.src.outputs.skip != '1'
+        uses: actions/jekyll-build-pages@v1
+      - if: steps.src.outputs.skip != '1'
+        uses: actions/upload-pages-artifact@v3
+      - if: steps.src.outputs.skip != '1'
+        uses: actions/deploy-pages@v4
