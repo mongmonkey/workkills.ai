@@ -25,6 +25,10 @@ jobs:
           echo workkills.ai > CNAME
           sed -i 's#^url:.*#url: "https://workkills.ai"#' _config.yml
           echo "${{ steps.src.outputs.sha }}" > source-sha.txt
+          # 스크립트 없이도(링크 미리보기·캐시) 이름 끝이 AI로 보이게 원문을 바꾼다
+          sed -i 's/Work Kills Me/Work Kills AI/g' _config.yml index.html _layouts/blog.html
+          sed -i 's#id="tld">ME<#id="tld">AI<#g' index.html _layouts/blog.html
+          sed -i 's#id="home-link">workkills.me<#id="home-link">workkills.ai<#' _layouts/blog.html
       - if: steps.src.outputs.skip != '1'
         uses: actions/jekyll-build-pages@v1
       - if: steps.src.outputs.skip != '1'
